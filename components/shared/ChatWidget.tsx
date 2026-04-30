@@ -377,7 +377,7 @@ export function ChatWidget({ brand, primaryColor, accentColor, whatsappNumber, a
       )}
 
       {/* ── BUBBLE ──────────────────────────────────────────────────────── */}
-      <div className={`fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 ${isOpen ? 'hidden sm:flex' : 'flex'}`}>
+      <div className={`fixed bottom-[88px] md:bottom-6 right-6 z-[55] flex flex-col items-end gap-2 ${isOpen ? 'hidden sm:flex' : 'flex'}`}>
         {showTip && !isOpen && (
           <div
             className="mr-1 max-w-[200px] rounded-[12px] border border-[#E5E7EB] bg-white px-3.5 py-2.5 text-xs font-medium text-[#374151]"
