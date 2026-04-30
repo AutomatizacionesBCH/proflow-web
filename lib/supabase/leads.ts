@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { getSupabase } from './client'
 import type { BrandId } from '@/config/brands'
 
 export interface LeadPayload {
@@ -21,7 +21,7 @@ const tableMap: Record<BrandId, string> = {
 
 export async function submitLead(payload: LeadPayload) {
   const table = tableMap[payload.brand]
-  const { data, error } = await supabase.from(table).insert([
+  const { data, error } = await getSupabase().from(table).insert([
     {
       ...payload,
       created_at: new Date().toISOString(),
@@ -37,7 +37,7 @@ export async function trackEvent(
   event: string,
   metadata?: Record<string, unknown>,
 ) {
-  const { error } = await supabase.from('brand_events').insert([
+  const { error } = await getSupabase().from('brand_events').insert([
     {
       brand,
       event,
