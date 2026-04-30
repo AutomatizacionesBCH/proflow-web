@@ -520,6 +520,7 @@ function Footer() {
                 width={180}
                 height={40}
                 className="h-10 w-auto"
+                unoptimized
               />
             </div>
             <p className="mb-5 text-sm text-[#6B7280]">
