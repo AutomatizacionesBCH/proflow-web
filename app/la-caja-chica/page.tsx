@@ -4,6 +4,7 @@ import { CajaChicaHeader } from '@/components/caja-chica/Header'
 import { HeroWithCalculator } from '@/components/caja-chica/HeroWithCalculator'
 import { StepCard } from '@/components/ui/StepCard'
 import { MobileStickyCTA } from '@/components/ui/MobileStickyCTA'
+import { ChatWidget } from '@/components/shared/ChatWidget'
 
 export const metadata: Metadata = {
   title: 'La Caja Chica — Liquidez inmediata. Sin vueltas.',
@@ -468,6 +469,13 @@ export default function CajaChicaPage() {
         href="#calculadora"
         variant="simulate"
         color="#0A6B5A"
+      />
+      <ChatWidget
+        brand="caja-chica"
+        primaryColor="#043D35"
+        accentColor="#0A6B5A"
+        whatsappNumber="56912345678"
+        agentName="Equipo La Caja Chica"
       />
     </main>
   )

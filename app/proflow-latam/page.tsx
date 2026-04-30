@@ -4,6 +4,7 @@ import { ProflowLatamHeader } from '@/components/proflow-latam/Header'
 import { HeroWithCalculator } from '@/components/proflow-latam/HeroWithCalculator'
 import { StepCard } from '@/components/ui/StepCard'
 import { MobileStickyCTA } from '@/components/ui/MobileStickyCTA'
+import { ChatWidget } from '@/components/shared/ChatWidget'
 
 export const metadata: Metadata = {
   title: 'ProFlow LATAM — Liquidez empresarial. Ágil y segura.',
@@ -571,6 +572,13 @@ export default function ProflowLatamPage() {
         href="#calculadora"
         variant="simulate"
         color="#1A56DB"
+      />
+      <ChatWidget
+        brand="proflow-latam"
+        primaryColor="#0F2D6B"
+        accentColor="#1A56DB"
+        whatsappNumber="56912345678"
+        agentName="Asesor ProFlow"
       />
     </main>
   )

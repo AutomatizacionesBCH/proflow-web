@@ -30,11 +30,66 @@ const SECTION_BG: Record<CalculatorProps['brand'], string> = {
   'proflow-latam': '#F8FAFF',
 }
 
+const CTA_LABEL: Record<CalculatorProps['brand'], string> = {
+  'caja-chica': 'Quiero esta operación',
+  'proflow-latam': 'Solicitar operación',
+}
+
 function calcular(montoUSD: number) {
   const montoBase = montoUSD * TASA_CAMBIO
   const comision = montoBase * COMISION
   const montoFinal = montoBase - comision
   return { montoBase, comision, montoFinal }
+}
+
+function fmtThousands(n: number) {
+  return n.toLocaleString('es-CL')
+}
+
+function VisaIcon({ selected }: { selected: boolean }) {
+  return (
+    <span
+      className="font-black italic text-base leading-none tracking-tight"
+      style={{ color: selected ? 'white' : '#1434CB', fontFamily: 'Arial, sans-serif' }}
+    >
+      VISA
+    </span>
+  )
+}
+
+function MastercardIcon({ selected }: { selected: boolean }) {
+  return (
+    <span className="relative flex h-5 w-8 items-center">
+      <span
+        className="absolute left-0 h-5 w-5 rounded-full"
+        style={{ backgroundColor: selected ? 'rgba(255,255,255,0.85)' : '#EB001B' }}
+      />
+      <span
+        className="absolute left-3 h-5 w-5 rounded-full"
+        style={{
+          backgroundColor: selected ? 'rgba(255,255,255,0.65)' : '#F79E1B',
+          opacity: 0.9,
+        }}
+      />
+    </span>
+  )
+}
+
+function AmexIcon({ selected }: { selected: boolean }) {
+  return (
+    <span
+      className="text-xs font-black tracking-widest"
+      style={{ color: selected ? 'white' : '#2E77BC', fontFamily: 'Arial, sans-serif' }}
+    >
+      AMEX
+    </span>
+  )
+}
+
+const CARD_ICON_MAP: Record<CardType, (selected: boolean) => React.ReactElement> = {
+  Visa: (s) => <VisaIcon selected={s} />,
+  Mastercard: (s) => <MastercardIcon selected={s} />,
+  Amex: (s) => <AmexIcon selected={s} />,
 }
 
 export function Calculator({
@@ -46,6 +101,7 @@ export function Calculator({
   onSimulate,
 }: CalculatorProps) {
   const [amount, setAmount] = useState(minAmount)
+  const [inputText, setInputText] = useState(fmtThousands(minAmount))
   const [card, setCard] = useState<CardType>('Visa')
   const [showBreakdown, setShowBreakdown] = useState(false)
 
@@ -63,194 +119,292 @@ export function Calculator({
     onSimulate?.(simulationData)
   }
 
+  const handleAmountFocus = () => {
+    setInputText(String(amount))
+  }
+
+  const handleAmountChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, '')
+    setInputText(digits)
+    const n = Number(digits)
+    if (n > 0) setAmount(n)
+  }
+
+  const handleAmountBlur = () => {
+    const clamped = Math.min(maxAmount, Math.max(minAmount, amount))
+    setAmount(clamped)
+    setInputText(fmtThousands(clamped))
+  }
+
+  const handleSlider = (v: number) => {
+    setAmount(v)
+    setInputText(fmtThousands(v))
+  }
+
   const waText = encodeURIComponent(
     `Hola, quiero operar ${formatUSD(amount)} con tarjeta ${card}. Recibiría ${formatCLP(montoFinal)} aproximadamente.`,
   )
   const waHref = `https://wa.me/56912345678?text=${waText}`
 
-  const inputBase =
-    'w-full rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#0D1117] outline-none transition-colors focus:border-[#9CA3AF]'
+  const sliderPct = Math.round(((amount - minAmount) / (maxAmount - minAmount)) * 100)
+
+  const sliderStyle = `
+    .calc-range-${brand} {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 9999px;
+      outline: none;
+      cursor: pointer;
+      width: 100%;
+    }
+    .calc-range-${brand}::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 22px;
+      width: 22px;
+      border-radius: 50%;
+      background: ${accentColor};
+      cursor: pointer;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      margin-top: -8px;
+      transition: transform 0.15s;
+    }
+    .calc-range-${brand}::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    .calc-range-${brand}::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 9999px;
+    }
+    .calc-range-${brand}::-moz-range-thumb {
+      height: 22px;
+      width: 22px;
+      border-radius: 50%;
+      background: ${accentColor};
+      cursor: pointer;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+  `
 
   return (
-    <section id="calculadora" style={{ backgroundColor: SECTION_BG[brand] }} className="py-20">
-      <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <h2
-            className="text-3xl font-extrabold tracking-tight sm:text-4xl"
-            style={{ color: primaryColor }}
-          >
-            Simulador de operación
-          </h2>
-          <p className="mt-3 text-[#6B7280]">
-            Calcula cuánto recibes en pesos. Operaciones desde{' '}
-            <span className="font-semibold text-[#0D1117]">{formatUSD(minAmount)}</span>.
-          </p>
-        </div>
+    <>
+      <style>{sliderStyle}</style>
 
-        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-sm">
-          {/* 1. Monto USD */}
-          <div className="mb-8">
-            <div className="mb-3 flex items-center justify-between">
-              <label className="text-sm font-semibold text-[#0D1117]">Monto en USD</label>
-              <span className="font-mono text-xl font-extrabold" style={{ color: primaryColor }}>
-                {formatUSD(amount)}
-              </span>
-            </div>
-            <input
-              type="range"
-              min={minAmount}
-              max={maxAmount}
-              step={minAmount >= 1000 ? 1000 : 50}
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
-              className="w-full cursor-pointer"
-              style={{ accentColor }}
-            />
-            <div className="mt-2 flex justify-between text-xs text-[#6B7280]">
-              <span>{formatUSD(minAmount)}</span>
-              <span>{formatUSD(maxAmount)}</span>
-            </div>
+      <section id="calculadora" style={{ backgroundColor: SECTION_BG[brand] }} className="py-16 sm:py-20">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
 
-            <div className="mt-4">
-              <input
-                type="number"
-                min={minAmount}
-                max={maxAmount}
-                value={amount}
-                onChange={(e) => {
-                  const v = Math.min(maxAmount, Math.max(minAmount, Number(e.target.value)))
-                  setAmount(v)
-                }}
-                className={inputBase}
-                placeholder="Ingresa un monto"
-              />
-            </div>
-          </div>
-
-          {/* 2. Tipo de tarjeta */}
-          <div className="mb-8">
-            <label className="mb-3 block text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
-              Tipo de tarjeta
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              {CARD_TYPES.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCard(c)}
-                  className="rounded-full border py-2.5 text-sm font-semibold transition-all"
-                  style={
-                    card === c
-                      ? { borderColor: accentColor, backgroundColor: accentColor, color: '#fff' }
-                      : { borderColor: '#E5E7EB', color: '#6B7280' }
-                  }
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 3. Resultado */}
-          <div className="mb-4 rounded-xl px-6 py-5" style={{ backgroundColor: primaryColor }}>
-            <p className="mb-1 text-xs text-white/50">Recibes aproximadamente</p>
-            <p className="font-mono text-3xl font-extrabold text-white">{formatCLP(montoFinal)}</p>
-            <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-white/60">Tasa referencial: $930 por USD</p>
-              <p className="text-xs text-white/60">Incluye comisión del 3,5%</p>
-            </div>
-          </div>
-
-          {/* 4. Desglose colapsable */}
-          <div className="mb-6">
-            <button
-              type="button"
-              onClick={() => setShowBreakdown(!showBreakdown)}
-              className="flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium text-[#6B7280] transition-colors hover:bg-[#F8FAFF]"
+          <div className="mb-10 text-center">
+            <h2
+              className="text-3xl font-extrabold tracking-tight sm:text-4xl"
+              style={{ color: primaryColor }}
             >
-              <span>Ver desglose</span>
-              <svg
-                className={`h-4 w-4 transition-transform ${showBreakdown ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+              Simulador de operación
+            </h2>
+            <p className="mt-3 text-[#6B7280]">
+              Calcula cuánto recibes en pesos. Operaciones desde{' '}
+              <span className="font-semibold text-[#0D1117]">{formatUSD(minAmount)}</span>.
+            </p>
+          </div>
 
-            {showBreakdown && (
-              <div className="mt-2 rounded-lg border border-[#E5E7EB] px-4 py-4 text-sm">
-                <div className="flex justify-between py-1.5">
-                  <span className="text-[#6B7280]">Monto bruto</span>
-                  <span className="font-mono font-semibold text-[#0D1117]">
-                    {formatCLP(montoBase)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-[#E5E7EB] py-1.5">
-                  <span className="text-[#6B7280]">Comisión (3,5%)</span>
-                  <span className="font-mono font-semibold text-red-500">
-                    -{formatCLP(comision)}
-                  </span>
-                </div>
-                <div
-                  className="flex justify-between border-t border-[#E5E7EB] py-1.5"
-                  style={{ borderColor: `${primaryColor}20` }}
-                >
-                  <span className="font-semibold" style={{ color: primaryColor }}>
-                    Monto que recibes
-                  </span>
-                  <span className="font-mono font-extrabold" style={{ color: primaryColor }}>
-                    {formatCLP(montoFinal)}
-                  </span>
+          <div
+            className="rounded-[18px] bg-white p-6 sm:p-8"
+            style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.07)' }}
+          >
+            {/* Monto */}
+            <div className="mb-7">
+              <label className="mb-3 block text-sm font-semibold text-[#0D1117]">
+                ¿Cuánto quieres operar?
+              </label>
+
+              <div className="relative flex items-center">
+                <span className="pointer-events-none absolute left-4 text-sm font-semibold text-[#9CA3AF]">
+                  $
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={inputText}
+                  onFocus={handleAmountFocus}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  onBlur={handleAmountBlur}
+                  placeholder="Ej: 1.000"
+                  className="h-14 w-full rounded-[12px] border border-[#E5E7EB] bg-white pl-10 pr-16 text-base font-semibold text-[#0D1117] outline-none transition-colors focus:border-[#9CA3AF]"
+                />
+                <span className="pointer-events-none absolute right-4 text-xs font-bold text-[#9CA3AF]">
+                  USD
+                </span>
+              </div>
+
+              <div className="mt-5">
+                <input
+                  type="range"
+                  min={minAmount}
+                  max={maxAmount}
+                  step={minAmount >= 1000 ? 1000 : 50}
+                  value={amount}
+                  onChange={(e) => handleSlider(Number(e.target.value))}
+                  className={`calc-range-${brand}`}
+                  style={{
+                    background: `linear-gradient(to right, ${accentColor} ${sliderPct}%, #E5E7EB ${sliderPct}%)`,
+                  }}
+                />
+                <div className="mt-2 flex justify-between text-xs text-[#9CA3AF]">
+                  <span>{formatUSD(minAmount)}</span>
+                  <span>{formatUSD(maxAmount)}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Tipo de tarjeta */}
+            <div className="mb-7">
+              <label className="mb-3 block text-sm font-semibold text-[#0D1117]">
+                Tipo de tarjeta
+              </label>
+              <div className="grid grid-cols-3 gap-2.5">
+                {CARD_TYPES.map((c) => {
+                  const sel = card === c
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCard(c)}
+                      className="flex flex-col items-center gap-2 rounded-xl border py-4 transition-all duration-150"
+                      style={
+                        sel
+                          ? { borderColor: accentColor, backgroundColor: accentColor }
+                          : { borderColor: '#E5E7EB', backgroundColor: 'white' }
+                      }
+                    >
+                      <span className="flex h-5 items-center justify-center">
+                        {CARD_ICON_MAP[c](sel)}
+                      </span>
+                      <span
+                        className="text-xs font-semibold"
+                        style={{ color: sel ? 'white' : '#6B7280' }}
+                      >
+                        {c}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Separator */}
+            <div className="mb-6 border-t border-[#E5E7EB]" />
+
+            {/* Resultado */}
+            <div className="mb-5">
+              <p className="mb-1.5 text-xs font-medium text-[#9CA3AF]">
+                Recibes aproximadamente
+              </p>
+              <p
+                className="font-mono font-extrabold leading-none tracking-tight"
+                style={{ color: accentColor, fontSize: '40px' }}
+              >
+                {formatCLP(montoFinal)}
+              </p>
+              <p className="mt-2 text-xs text-[#9CA3AF]">Tasa referencial: $930 por USD</p>
+            </div>
+
+            {/* Desglose */}
+            <div className="mb-5">
+              <button
+                type="button"
+                onClick={() => setShowBreakdown(!showBreakdown)}
+                className="flex items-center gap-1.5 text-sm font-medium transition-opacity hover:opacity-70"
+                style={{ color: accentColor }}
+              >
+                Ver desglose
+                <svg
+                  className={`h-3.5 w-3.5 transition-transform duration-200 ${showBreakdown ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showBreakdown && (
+                <div className="mt-3 overflow-hidden rounded-xl border border-[#E5E7EB] text-sm">
+                  <div className="flex justify-between px-4 py-3">
+                    <span className="text-[#6B7280]">Monto bruto</span>
+                    <span className="font-mono font-semibold text-[#0D1117]">
+                      {formatCLP(montoBase)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-[#E5E7EB] px-4 py-3">
+                    <span className="text-[#6B7280]">Comisión (3,5%)</span>
+                    <span className="font-mono font-semibold text-red-400">
+                      −{formatCLP(comision)}
+                    </span>
+                  </div>
+                  <div
+                    className="flex justify-between px-4 py-3"
+                    style={{
+                      backgroundColor: `${accentColor}0A`,
+                      borderTop: `1px solid ${accentColor}20`,
+                    }}
+                  >
+                    <span className="font-semibold" style={{ color: accentColor }}>
+                      Total que recibes
+                    </span>
+                    <span className="font-mono font-extrabold" style={{ color: accentColor }}>
+                      {formatCLP(montoFinal)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Legal */}
+            <p className="mb-6 text-xs text-[#9CA3AF]">
+              * Valores referenciales. La tasa final se confirma al momento de la operación.
+            </p>
+
+            {/* CTA */}
+            {brand === 'caja-chica' ? (
+              <a
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleCTA}
+                className="flex w-full items-center justify-center rounded-[14px] py-4 text-base font-bold text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
+                style={{
+                  backgroundColor: accentColor,
+                  boxShadow: `0 4px 14px ${accentColor}50`,
+                }}
+              >
+                {CTA_LABEL[brand]}
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCTA}
+                className="flex w-full items-center justify-center rounded-[14px] py-4 text-base font-bold text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
+                style={{
+                  backgroundColor: accentColor,
+                  boxShadow: `0 4px 14px ${accentColor}50`,
+                }}
+              >
+                {CTA_LABEL[brand]}
+              </button>
             )}
+
+            {/* Time badge */}
+            <div className="mt-4 flex justify-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-[#6B7280]">
+                ⚡ Operación en aprox. 15-20 minutos
+              </span>
+            </div>
           </div>
 
-          {/* 5. CTA */}
-          {brand === 'caja-chica' ? (
-            <a
-              href={waHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleCTA}
-              className="block w-full rounded-xl py-4 text-center text-sm font-bold text-white transition-colors"
-              style={{ backgroundColor: accentColor }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = primaryColor)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = accentColor)
-              }
-            >
-              Quiero esta operación →
-            </a>
-          ) : (
-            <a
-              href="#contacto"
-              onClick={handleCTA}
-              className="block w-full rounded-xl py-4 text-center text-sm font-bold text-white transition-colors"
-              style={{ backgroundColor: accentColor }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = primaryColor)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = accentColor)
-              }
-            >
-              Solicitar operación →
-            </a>
-          )}
-
-          {/* Legal */}
-          <p className="mt-4 text-center text-xs text-[#6B7280]">
-            * Valores referenciales. La tasa final se confirma al momento de la operación.
-          </p>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   )
 }
