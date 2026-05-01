@@ -94,7 +94,9 @@ export function HeroWithCalculator() {
                   Comenzar operación
                 </a>
                 <a
-                  href="#contacto"
+                  href="https://wa.me/56988617795?text=Hola%2C+quiero+hablar+con+un+asesor+de+ProFlow"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{
                     border: '1.5px solid #1A56DB',
                     borderRadius: '14px',
