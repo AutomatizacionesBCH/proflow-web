@@ -1,10 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { formatCLP, formatUSD } from '@/lib/formatters'
 
-const TASA_CAMBIO = 930
-const COMISION = 0.035
+const FALLBACK_DOLAR = 930
 const CARD_TYPES = ['Visa', 'Mastercard', 'Amex'] as const
 type CardType = (typeof CARD_TYPES)[number]
 
@@ -35,11 +34,12 @@ const CTA_LABEL: Record<CalculatorProps['brand'], string> = {
   'proflow-latam': 'Solicitar operación',
 }
 
-function calcular(montoUSD: number) {
-  const montoBase = montoUSD * TASA_CAMBIO
-  const comision = montoBase * COMISION
-  const montoFinal = montoBase - comision
-  return { montoBase, comision, montoFinal }
+const getFactor = (amount: number): number => {
+  if (amount < 200) return 0
+  if (amount < 1000) return 0.78
+  if (amount < 2500) return 0.79
+  if (amount < 5000) return 0.80
+  return 0.81
 }
 
 function fmtThousands(n: number) {
@@ -96,7 +96,7 @@ export function Calculator({
   brand,
   primaryColor,
   accentColor,
-  minAmount = 100,
+  minAmount = 200,
   maxAmount = 10000,
   onSimulate,
 }: CalculatorProps) {
@@ -104,14 +104,39 @@ export function Calculator({
   const [inputText, setInputText] = useState(fmtThousands(minAmount))
   const [card, setCard] = useState<CardType>('Visa')
   const [showBreakdown, setShowBreakdown] = useState(false)
+  const [valorDolar, setValorDolar] = useState<number | null>(null)
+  const [dolarError, setDolarError] = useState(false)
 
-  const { montoBase, comision, montoFinal } = calcular(amount)
+  useEffect(() => {
+    fetch('https://mindicador.cl/api/dolar')
+      .then((res) => res.json())
+      .then((data) => {
+        const valor =
+          (Array.isArray(data) ? data[0]?.valor : null) ??
+          data?.serie?.[0]?.valor
+        if (typeof valor === 'number') {
+          setValorDolar(valor)
+        } else {
+          throw new Error('Formato inesperado')
+        }
+      })
+      .catch(() => {
+        setDolarError(true)
+        setValorDolar(FALLBACK_DOLAR)
+      })
+  }, [])
+
+  const dolarActual = valorDolar ?? FALLBACK_DOLAR
+  const factor = getFactor(amount)
+  const montoBase = amount * dolarActual
+  const montoFinal = amount * factor * dolarActual
+  const diferencia = montoBase - montoFinal
 
   const simulationData: SimulationData = {
     montoUSD: amount,
     montoFinalCLP: montoFinal,
-    tasaCambio: TASA_CAMBIO,
-    comision,
+    tasaCambio: dolarActual,
+    comision: diferencia,
     tipoTarjeta: card,
   }
 
@@ -187,6 +212,10 @@ export function Calculator({
       box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     }
   `
+
+  const tasaLabel = valorDolar === null && !dolarError
+    ? 'Cargando tasa...'
+    : `Tasa referencial: $${fmtThousands(Math.round(dolarActual))} por USD · Factor ${factor}`
 
   return (
     <>
@@ -306,7 +335,12 @@ export function Calculator({
               >
                 {formatCLP(montoFinal)}
               </p>
-              <p className="mt-2 text-xs text-[#9CA3AF]">Tasa referencial: $930 por USD</p>
+              <p className="mt-2 text-xs text-[#9CA3AF]">{tasaLabel}</p>
+              {dolarError && (
+                <p className="mt-1 text-xs text-amber-500">
+                  No se pudo obtener la tasa en tiempo real. Se usa valor de respaldo.
+                </p>
+              )}
             </div>
 
             {/* Desglose */}
@@ -332,15 +366,15 @@ export function Calculator({
               {showBreakdown && (
                 <div className="mt-3 overflow-hidden rounded-xl border border-[#E5E7EB] text-sm">
                   <div className="flex justify-between px-4 py-3">
-                    <span className="text-[#6B7280]">Monto bruto</span>
+                    <span className="text-[#6B7280]">Monto bruto (USD → CLP)</span>
                     <span className="font-mono font-semibold text-[#0D1117]">
                       {formatCLP(montoBase)}
                     </span>
                   </div>
                   <div className="flex justify-between border-t border-[#E5E7EB] px-4 py-3">
-                    <span className="text-[#6B7280]">Comisión (3,5%)</span>
+                    <span className="text-[#6B7280]">Diferencia por factor ({factor})</span>
                     <span className="font-mono font-semibold text-red-400">
-                      −{formatCLP(comision)}
+                      −{formatCLP(diferencia)}
                     </span>
                   </div>
                   <div
@@ -363,7 +397,8 @@ export function Calculator({
 
             {/* Legal */}
             <p className="mb-6 text-xs text-[#9CA3AF]">
-              * Valores referenciales. La tasa final se confirma al momento de la operación.
+              * Simulación referencial basada en la tasa del día.
+              La tasa final se confirma al momento de la operación.
             </p>
 
             {/* CTA */}
