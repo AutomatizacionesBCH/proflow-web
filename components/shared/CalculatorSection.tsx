@@ -31,7 +31,7 @@ export function CalculatorSection({
     }, 100)
   }
 
-  const wa = whatsappNumber || '56912345678'
+  const wa = whatsappNumber || '56966810468'
 
   return (
     <>

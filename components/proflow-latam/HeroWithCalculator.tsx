@@ -137,7 +137,7 @@ export function HeroWithCalculator() {
             simulationData={simulationData}
             primaryColor="#0F2D6B"
             accentColor="#1A56DB"
-            whatsappNumber="56912345678"
+            whatsappNumber="56966810468"
           />
         )}
       </div>

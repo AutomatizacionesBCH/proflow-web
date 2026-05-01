@@ -102,7 +102,7 @@ export function Calculator() {
 
           {/* CTA */}
           <a
-            href={`https://wa.me/56912345678?text=${waMsg}`}
+            href={`https://wa.me/56966810468?text=${waMsg}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0A6B5A] py-4 text-base font-bold text-white transition-colors hover:bg-[#043D35]"

@@ -1,6 +1,6 @@
 import { BrandHeader } from '@/components/ui/BrandHeader'
 
-const WA_HREF = 'https://wa.me/56912345678?text=Hola%2C+quiero+simular+una+operaci%C3%B3n'
+const WA_HREF = 'https://wa.me/56966810468?text=Hola%2C+quiero+simular+una+operaci%C3%B3n'
 
 const NAV_LINKS = [
   { label: 'Cómo funciona', href: '#como-funciona' },
@@ -21,7 +21,7 @@ export function CajaChicaHeader() {
       ctaColor="#0A6B5A"
       ctaColorHover="#043D35"
       whatsappHref={WA_HREF}
-      whatsappNumber="+56 9 1234 5678"
+      whatsappNumber="+56 9 6681 0468"
     />
   )
 }

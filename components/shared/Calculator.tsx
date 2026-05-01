@@ -164,7 +164,7 @@ export function Calculator({
   const waText = encodeURIComponent(
     `Hola, quiero operar ${formatUSD(amount)} con tarjeta ${card}. Recibiría ${formatCLP(montoFinal)} aproximadamente.`,
   )
-  const waHref = `https://wa.me/56912345678?text=${waText}`
+  const waHref = `https://wa.me/56966810468?text=${waText}`
 
   const sliderPct = Math.round(((amount - minAmount) / (maxAmount - minAmount)) * 100)
 

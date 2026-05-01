@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 }
 
 const WA_HREF =
-  'https://wa.me/56912345678?text=Hola%2C+quiero+simular+una+operaci%C3%B3n'
+  'https://wa.me/56966810468?text=Hola%2C+quiero+simular+una+operaci%C3%B3n'
 
 // ─── TRUST METRICS ────────────────────────────────────────────────────────────
 
@@ -474,7 +474,7 @@ export default function CajaChicaPage() {
         brand="caja-chica"
         primaryColor="#043D35"
         accentColor="#0A6B5A"
-        whatsappNumber="56912345678"
+        whatsappNumber="56966810468"
         agentName="Equipo La Caja Chica"
       />
     </main>

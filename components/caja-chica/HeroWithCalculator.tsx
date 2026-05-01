@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { Calculator, type SimulationData } from '@/components/shared/Calculator'
 import { PreApproval } from '@/components/shared/PreApproval'
 
-const WA_HREF = 'https://wa.me/56912345678?text=Hola%2C+quiero+simular+una+operaci%C3%B3n'
+const WA_HREF = 'https://wa.me/56966810468?text=Hola%2C+quiero+simular+una+operaci%C3%B3n'
 
 const BULLETS = [
   'Respuesta en minutos',
@@ -143,7 +143,7 @@ export function HeroWithCalculator() {
             simulationData={simulationData}
             primaryColor="#043D35"
             accentColor="#0A6B5A"
-            whatsappNumber="56912345678"
+            whatsappNumber="56966810468"
           />
         )}
       </div>

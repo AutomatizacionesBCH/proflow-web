@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 }
 
 const WA_HREF =
-  'https://wa.me/56912345678?text=Hola%2C+quiero+iniciar+una+operaci%C3%B3n+con+ProFlow'
+  'https://wa.me/56966810468?text=Hola%2C+quiero+iniciar+una+operaci%C3%B3n+con+ProFlow'
 
 // ─── MÉTRICAS ─────────────────────────────────────────────────────────────────
 
@@ -577,7 +577,7 @@ export default function ProflowLatamPage() {
         brand="proflow-latam"
         primaryColor="#0F2D6B"
         accentColor="#1A56DB"
-        whatsappNumber="56912345678"
+        whatsappNumber="56966810468"
         agentName="Asesor ProFlow"
       />
     </main>
