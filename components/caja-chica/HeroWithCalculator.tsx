@@ -125,8 +125,8 @@ export function HeroWithCalculator() {
                 brand="caja-chica"
                 primaryColor="#043D35"
                 accentColor="#0A6B5A"
-                minAmount={100}
-                maxAmount={5000}
+                minAmount={200}
+                maxAmount={15000}
                 onSimulate={handleSimulate}
               />
             </div>

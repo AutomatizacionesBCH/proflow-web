@@ -97,13 +97,12 @@ export function Calculator({
   primaryColor,
   accentColor,
   minAmount = 200,
-  maxAmount = 10000,
+  maxAmount = 15000,
   onSimulate,
 }: CalculatorProps) {
   const [amount, setAmount] = useState(minAmount)
   const [inputText, setInputText] = useState(fmtThousands(minAmount))
   const [card, setCard] = useState<CardType>('Visa')
-  const [showBreakdown, setShowBreakdown] = useState(false)
   const [valorDolar, setValorDolar] = useState<number | null>(null)
   const [dolarError, setDolarError] = useState(false)
 
@@ -128,15 +127,13 @@ export function Calculator({
 
   const dolarActual = valorDolar ?? FALLBACK_DOLAR
   const factor = getFactor(amount)
-  const montoBase = amount * dolarActual
   const montoFinal = amount * factor * dolarActual
-  const diferencia = montoBase - montoFinal
 
   const simulationData: SimulationData = {
     montoUSD: amount,
     montoFinalCLP: montoFinal,
     tasaCambio: dolarActual,
-    comision: diferencia,
+    comision: 0,
     tipoTarjeta: card,
   }
 
@@ -215,7 +212,7 @@ export function Calculator({
 
   const tasaLabel = valorDolar === null && !dolarError
     ? 'Cargando tasa...'
-    : `Tasa referencial: $${fmtThousands(Math.round(dolarActual))} por USD · Factor ${factor}`
+    : `Tasa referencial: $${fmtThousands(Math.round(dolarActual))} por USD`
 
   return (
     <>
@@ -340,58 +337,6 @@ export function Calculator({
                 <p className="mt-1 text-xs text-amber-500">
                   No se pudo obtener la tasa en tiempo real. Se usa valor de respaldo.
                 </p>
-              )}
-            </div>
-
-            {/* Desglose */}
-            <div className="mb-5">
-              <button
-                type="button"
-                onClick={() => setShowBreakdown(!showBreakdown)}
-                className="flex items-center gap-1.5 text-sm font-medium transition-opacity hover:opacity-70"
-                style={{ color: accentColor }}
-              >
-                Ver desglose
-                <svg
-                  className={`h-3.5 w-3.5 transition-transform duration-200 ${showBreakdown ? 'rotate-180' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {showBreakdown && (
-                <div className="mt-3 overflow-hidden rounded-xl border border-[#E5E7EB] text-sm">
-                  <div className="flex justify-between px-4 py-3">
-                    <span className="text-[#6B7280]">Monto bruto (USD → CLP)</span>
-                    <span className="font-mono font-semibold text-[#0D1117]">
-                      {formatCLP(montoBase)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-t border-[#E5E7EB] px-4 py-3">
-                    <span className="text-[#6B7280]">Diferencia por factor ({factor})</span>
-                    <span className="font-mono font-semibold text-red-400">
-                      −{formatCLP(diferencia)}
-                    </span>
-                  </div>
-                  <div
-                    className="flex justify-between px-4 py-3"
-                    style={{
-                      backgroundColor: `${accentColor}0A`,
-                      borderTop: `1px solid ${accentColor}20`,
-                    }}
-                  >
-                    <span className="font-semibold" style={{ color: accentColor }}>
-                      Total que recibes
-                    </span>
-                    <span className="font-mono font-extrabold" style={{ color: accentColor }}>
-                      {formatCLP(montoFinal)}
-                    </span>
-                  </div>
-                </div>
               )}
             </div>
 

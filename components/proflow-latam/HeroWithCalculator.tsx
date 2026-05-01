@@ -119,8 +119,8 @@ export function HeroWithCalculator() {
                 brand="proflow-latam"
                 primaryColor="#0F2D6B"
                 accentColor="#1A56DB"
-                minAmount={1000}
-                maxAmount={50000}
+                minAmount={200}
+                maxAmount={15000}
                 onSimulate={handleSimulate}
               />
             </div>
