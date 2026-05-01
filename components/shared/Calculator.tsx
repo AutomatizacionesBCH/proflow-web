@@ -104,7 +104,6 @@ export function Calculator({
   const [inputText, setInputText] = useState(fmtThousands(minAmount))
   const [card, setCard] = useState<CardType>('Visa')
   const [valorDolar, setValorDolar] = useState<number | null>(null)
-  const [dolarError, setDolarError] = useState(false)
 
   useEffect(() => {
     fetch('https://mindicador.cl/api/dolar')
@@ -120,7 +119,6 @@ export function Calculator({
         }
       })
       .catch(() => {
-        setDolarError(true)
         setValorDolar(FALLBACK_DOLAR)
       })
   }, [])
@@ -209,10 +207,6 @@ export function Calculator({
       box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     }
   `
-
-  const tasaLabel = valorDolar === null && !dolarError
-    ? 'Cargando tasa...'
-    : `Tasa referencial: $${fmtThousands(Math.round(dolarActual))} por USD`
 
   return (
     <>
@@ -332,12 +326,6 @@ export function Calculator({
               >
                 {formatCLP(montoFinal)}
               </p>
-              <p className="mt-2 text-xs text-[#9CA3AF]">{tasaLabel}</p>
-              {dolarError && (
-                <p className="mt-1 text-xs text-amber-500">
-                  No se pudo obtener la tasa en tiempo real. Se usa valor de respaldo.
-                </p>
-              )}
             </div>
 
             {/* Legal */}
