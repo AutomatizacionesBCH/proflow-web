@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { getSupabase } from '@/lib/supabase/client'
 
 export interface ChatWidgetProps {
   brand: 'caja-chica' | 'proflow-latam'
@@ -12,8 +11,7 @@ export interface ChatWidgetProps {
 }
 
 type MsgFrom = 'bot' | 'user'
-type CaptureStep = 'nombre' | 'telefono' | 'monto' | null
-type ActionKind = 'scroll' | 'wa' | 'chat'
+type ActionKind = 'scroll' | 'wa'
 
 interface MsgAction {
   label: string
@@ -29,86 +27,24 @@ interface Msg {
   actions?: MsgAction[]
 }
 
-interface BotResp {
-  text: string
-  actions?: MsgAction[]
-  captureNext?: CaptureStep
-}
+type ApiMessage = { role: 'user' | 'assistant'; content: string }
 
 const WELCOME: Record<ChatWidgetProps['brand'], string> = {
-  'caja-chica':    '👋 Hola, soy el asistente de La Caja Chica.\n¿En qué te puedo ayudar hoy?',
-  'proflow-latam': '👋 Bienvenido a ProFlow LATAM.\nSoy tu asesor digital. ¿En qué te puedo ayudar?',
+  'caja-chica':    '👋 Hola, soy Magdalen-IA, asistente virtual de La Caja Chica.\n¿En qué le puedo ayudar hoy?',
+  'proflow-latam': '👋 Bienvenido a ProFlow LATAM.\nSoy Magdalen-IA, su asistente digital. ¿En qué le puedo ayudar?',
 }
 
 const CHIPS = [
-  { label: '¿Cuánto puedo recibir?', key: 'cuanto' },
-  { label: '¿Cómo funciona?',        key: 'como'   },
-  { label: '¿Es seguro?',            key: 'seguro'  },
-  { label: 'Quiero operar ahora',    key: 'operar'  },
+  { label: '¿Cuánto puedo recibir?' },
+  { label: '¿Cómo funciona?' },
+  { label: '¿Es seguro?' },
+  { label: 'Quiero operar ahora' },
 ]
-
-const BOT: Record<string, BotResp> = {
-  cuanto: {
-    text: 'Depende del monto de tu tarjeta y la tasa del día.\nPuedes simularlo ahora mismo en nuestra calculadora.\n¿Quieres que te ayude a simular?',
-    actions: [{ label: 'Ir a la calculadora', kind: 'scroll', value: 'calculadora' }],
-  },
-  como: {
-    text: 'Es muy simple:\n1️⃣ Simulas el monto que quieres operar\n2️⃣ Te contactamos para confirmar los detalles\n3️⃣ Recibes el dinero el mismo día\n¿Tienes alguna duda sobre algún paso?',
-  },
-  seguro: {
-    text: 'Sí, completamente. Llevamos más de 500 operaciones realizadas con un 98% de satisfacción.\nTodo el proceso es coordinado por nuestro equipo de forma directa y transparente.\n¿Quieres saber más sobre cómo protegemos tu operación?',
-  },
-  operar: {
-    text: 'Perfecto, te ayudo a avanzar.\nPara coordinar tu operación necesito algunos datos.\n¿Me puedes decir tu nombre?',
-    captureNext: 'nombre',
-  },
-  tiempo: {
-    text: 'El proceso completo toma entre 15 y 30 minutos desde que confirmamos los detalles.\n¿Quieres iniciar tu operación ahora?',
-    actions: [{ label: 'Quiero operar ahora', kind: 'chat', value: 'operar' }],
-  },
-  vencida: {
-    text: 'Si tu tarjeta está vencida hace pocos días, en muchos casos la operación igual puede realizarse.\nLo mejor es que nos escribas directamente para revisarlo.',
-    actions: [{ label: 'Escribir por WhatsApp', kind: 'wa', value: '' }],
-  },
-  cupo: {
-    text: 'Entiendo tu consulta. Este es un caso que revisamos caso a caso con nuestro equipo.\n¿Quieres que te contactemos para analizarlo?',
-    actions: [{ label: 'Contactar al equipo', kind: 'wa', value: '' }],
-  },
-  fallback: {
-    text: 'Entiendo tu consulta. Para darte la mejor respuesta, te conectaré con nuestro equipo directamente.',
-    actions: [{ label: 'Hablar con el equipo', kind: 'wa', value: '' }],
-  },
-}
-
-function matchKey(text: string): string {
-  const t = text.toLowerCase()
-  if (/tarjeta vencida|vencida/.test(t)) return 'vencida'
-  if (/cupo en pesos|sobregirado|cupo pesos/.test(t)) return 'cupo'
-  if (/tiempo|cu[aá]nto demora|demora/.test(t)) return 'tiempo'
-  if (/cu[aá]nto (puedo|recibo|recibir[ií]a)/.test(t)) return 'cuanto'
-  if (/c[oó]mo funciona|proceso/.test(t)) return 'como'
-  if (/seguro|confiable/.test(t)) return 'seguro'
-  if (/quiero operar|operaci[oó]n|empezar/.test(t)) return 'operar'
-  return 'fallback'
-}
 
 function uid() { return Math.random().toString(36).slice(2) }
 function fmtTime(d: Date) { return d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) }
 function mkBot(text: string, actions?: MsgAction[]): Msg { return { id: uid(), from: 'bot', text, ts: new Date(), actions } }
 function mkUser(text: string): Msg { return { id: uid(), from: 'user', text, ts: new Date() } }
-
-async function saveChatLead(params: {
-  brand: string
-  nombre: string
-  telefono: string
-  mensajes_count: number
-  ultimo_mensaje: string
-}) {
-  try {
-    const sb = getSupabase()
-    await sb.from('web_chat_leads').insert([{ ...params, created_at: new Date().toISOString() }])
-  } catch { /* silent — never interrupt the chat */ }
-}
 
 export function ChatWidget({ brand, primaryColor, accentColor, whatsappNumber, agentName }: ChatWidgetProps) {
   const [isOpen, setIsOpen]       = useState(false)
@@ -117,75 +53,65 @@ export function ChatWidget({ brand, primaryColor, accentColor, whatsappNumber, a
   const [msgs, setMsgs]           = useState<Msg[]>([])
   const [input, setInput]         = useState('')
   const [typing, setTyping]       = useState(false)
-  const [capture, setCapture]     = useState<CaptureStep>(null)
-  const [capData, setCapData]     = useState<{ nombre?: string; telefono?: string }>({})
   const [opened, setOpened]       = useState(false)
 
-  const endRef    = useRef<HTMLDivElement>(null)
-  const taRef     = useRef<HTMLTextAreaElement>(null)
-  const countRef  = useRef(0)
+  const endRef         = useRef<HTMLDivElement>(null)
+  const taRef          = useRef<HTMLTextAreaElement>(null)
+  const apiMessagesRef = useRef<ApiMessage[]>([])
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs, typing])
 
   const addBot = useCallback((text: string, actions?: MsgAction[]) => {
-    countRef.current++
     setMsgs(prev => [...prev, mkBot(text, actions)])
   }, [])
-
-  const withTyping = useCallback((fn: () => void, delay = 900) => {
-    setTyping(true)
-    setTimeout(() => { setTyping(false); fn() }, delay)
-  }, [])
-
-  const triggerBot = useCallback((key: string) => {
-    const r = BOT[key] ?? BOT.fallback
-    withTyping(() => {
-      addBot(r.text, r.actions)
-      if (r.captureNext) setCapture(r.captureNext)
-    })
-  }, [withTyping, addBot])
 
   const handleOpen = useCallback(() => {
     setIsOpen(true)
     setShowBadge(false)
     if (!opened) {
       setOpened(true)
-      withTyping(() => addBot(WELCOME[brand]), 800)
+      setTyping(true)
+      setTimeout(() => {
+        setTyping(false)
+        addBot(WELCOME[brand])
+      }, 800)
     }
-  }, [opened, brand, withTyping, addBot])
+  }, [opened, brand, addBot])
 
-  const handleCapture = useCallback((text: string) => {
-    if (capture === 'nombre') {
-      setCapData(p => ({ ...p, nombre: text }))
-      setCapture(null)
-      withTyping(() => { addBot('¿Cuál es tu número de WhatsApp? (+56 9...)'); setCapture('telefono') })
-    } else if (capture === 'telefono') {
-      setCapData(p => ({ ...p, telefono: text }))
-      setCapture(null)
-      withTyping(() => { addBot('¿Cuánto aproximadamente quieres operar en USD?'); setCapture('monto') })
-    } else if (capture === 'monto') {
-      const nombre   = capData.nombre ?? ''
-      const telefono = capData.telefono ?? ''
-      setCapture(null)
-      const waText = encodeURIComponent(`Hola, soy ${nombre}. Quiero operar aproximadamente USD ${text}.`)
-      saveChatLead({ brand, nombre, telefono, mensajes_count: countRef.current + 2, ultimo_mensaje: text })
-      withTyping(() => addBot(
-        `Perfecto ${nombre}.\nTe voy a conectar con nuestro equipo ahora mismo.`,
-        [{ label: 'Continuar por WhatsApp', kind: 'wa', value: waText }],
-      ))
+  const enviarMensaje = useCallback(async (texto: string) => {
+    const t = texto.trim()
+    if (!t || typing) return
+
+    const userMsg: ApiMessage = { role: 'user', content: t }
+    apiMessagesRef.current = [...apiMessagesRef.current, userMsg]
+
+    setMsgs(prev => [...prev, mkUser(t)])
+    setTyping(true)
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: apiMessagesRef.current, brand }),
+      })
+      const data = await res.json()
+      const reply = (data.reply as string) ?? 'Lo siento, tuve un problema.'
+      apiMessagesRef.current = [...apiMessagesRef.current, { role: 'assistant', content: reply }]
+      setTyping(false)
+      addBot(reply)
+    } catch {
+      setTyping(false)
+      addBot('Lo siento, tuve un problema. Por favor escríbenos directamente por WhatsApp.')
     }
-  }, [capture, capData, brand, withTyping, addBot])
+  }, [brand, addBot, typing])
 
   const send = useCallback((text: string) => {
     const t = text.trim()
     if (!t) return
-    countRef.current++
-    setMsgs(prev => [...prev, mkUser(t)])
     setInput('')
     if (taRef.current) { taRef.current.style.height = 'auto' }
-    if (capture) { handleCapture(t); return }
-    triggerBot(matchKey(t))
-  }, [capture, handleCapture, triggerBot])
+    enviarMensaje(t)
+  }, [enviarMensaje])
 
   const handleAction = useCallback((a: MsgAction) => {
     if (a.kind === 'scroll') {
@@ -194,12 +120,8 @@ export function ChatWidget({ brand, primaryColor, accentColor, whatsappNumber, a
     } else if (a.kind === 'wa') {
       const url = `https://wa.me/${whatsappNumber}?text=${a.value || encodeURIComponent('Hola, tengo una consulta.')}`
       window.open(url, '_blank', 'noopener,noreferrer')
-    } else if (a.kind === 'chat') {
-      const chip = CHIPS.find(c => c.key === a.value)
-      if (chip) { countRef.current++; setMsgs(prev => [...prev, mkUser(chip.label)]) }
-      triggerBot(a.value)
     }
-  }, [whatsappNumber, triggerBot])
+  }, [whatsappNumber])
 
   const showChips = msgs.length > 0 && msgs.every(m => m.from === 'bot') && !typing
 
@@ -322,12 +244,11 @@ export function ChatWidget({ brand, primaryColor, accentColor, whatsappNumber, a
               <div className="flex flex-wrap gap-2 pt-1">
                 {CHIPS.map((c) => (
                   <button
-                    key={c.key}
+                    key={c.label}
                     type="button"
                     onClick={() => {
-                      countRef.current++
                       setMsgs(prev => [...prev, mkUser(c.label)])
-                      triggerBot(c.key)
+                      enviarMensaje(c.label)
                     }}
                     className="rounded-full border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
                     style={{ borderColor: accentColor, color: accentColor, backgroundColor: 'white' }}
@@ -362,7 +283,7 @@ export function ChatWidget({ brand, primaryColor, accentColor, whatsappNumber, a
               <button
                 type="button"
                 onClick={() => send(input)}
-                disabled={!input.trim()}
+                disabled={!input.trim() || typing}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-40"
                 style={{ backgroundColor: accentColor }}
                 aria-label="Enviar"
