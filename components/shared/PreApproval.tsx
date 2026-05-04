@@ -16,13 +16,21 @@ const getFactor = (amount: number): number => {
   return 0.81
 }
 const BANCOS = [
-  'BancoEstado',
-  'Santander',
-  'BCI',
-  'Scotiabank',
-  'Falabella',
-  'Ripley',
-  'CMR',
+  'Banco de Chile',
+  'Banco Estado',
+  'Banco BCI',
+  'Banco Santander Chile',
+  'Banco Itaú Chile',
+  'Scotiabank Chile',
+  'Banco Falabella',
+  'Banco Ripley',
+  'Banco Security',
+  'Banco Consorcio',
+  'Banco Internacional',
+  'Banco BICE',
+  'Banco BTG Pactual Chile',
+  'Banco Coopeuch (cooperativa)',
+  'TAPP Caja Los Andes (cooperativa)',
   'Otro',
 ]
 const BRAND_NAMES: Record<string, string> = {
@@ -255,6 +263,7 @@ export function PreApproval({
 
   const [tipoTarjeta, setTipoTarjeta] = useState<string>(simulationData?.tipoTarjeta ?? 'Visa')
   const [banco, setBanco] = useState('')
+  const [bancoOtro, setBancoOtro] = useState('')
   const [montoUSD, setMontoUSD] = useState<number>(simulationData?.montoUSD ?? 0)
   const [primeraOperacion, setPrimeraOperacion] = useState<boolean | null>(null)
   const [tieneSaldoNacional, setTieneSaldoNacional] = useState<boolean | null>(null)
@@ -319,7 +328,7 @@ export function PreApproval({
       telefono,
       email,
       tipoTarjeta,
-      banco,
+      banco: banco === 'Otro' ? (bancoOtro.trim() || 'Otro') : banco,
       montoUSD,
       montoEstimadoCLP,
       primeraOperacion: primeraOperacion ?? false,
@@ -572,7 +581,7 @@ export function PreApproval({
                 <label className={labelCls}>Banco emisor</label>
                 <select
                   value={banco}
-                  onChange={(e) => { setBanco(e.target.value); setErrors((p) => ({ ...p, banco: '' })) }}
+                  onChange={(e) => { setBanco(e.target.value); setBancoOtro(''); setErrors((p) => ({ ...p, banco: '' })) }}
                   className={`${inputCls(!!errors.banco)} appearance-none`}
                 >
                   <option value="">Selecciona tu banco</option>
@@ -580,6 +589,16 @@ export function PreApproval({
                     <option key={b} value={b}>{b}</option>
                   ))}
                 </select>
+                {banco === 'Otro' && (
+                  <input
+                    type="text"
+                    value={bancoOtro}
+                    onChange={(e) => setBancoOtro(e.target.value)}
+                    placeholder="Escribe el nombre de tu banco"
+                    className={`${inputCls(false)} mt-2`}
+                    autoFocus
+                  />
+                )}
                 {errors.banco && <p className={errorCls}>{errors.banco}</p>}
               </div>
 
