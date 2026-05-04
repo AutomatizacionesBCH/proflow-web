@@ -352,6 +352,24 @@ export function PreApproval({
     setStep('success')
   }
 
+  const resetForm = () => {
+    setStep(1)
+    setNombre('')
+    setTelefono('')
+    setEmail('')
+    setTipoTarjeta(simulationData?.tipoTarjeta ?? 'Visa')
+    setBanco('')
+    setBancoOtro('')
+    setMontoUSD(simulationData?.montoUSD ?? 0)
+    setPrimeraOperacion(null)
+    setTieneSaldoNacional(null)
+    setAceptoContacto(false)
+    setAceptoReferencial(false)
+    setErrors({})
+    setSubmitError(null)
+    setLeadId(undefined)
+  }
+
   const waText = encodeURIComponent(
     `Hola, acabo de solicitar una pre-aprobación en ${brandName}. Mi nombre es ${nombre}, quiero operar ${formatUSD(montoUSD)}. ¿Me pueden confirmar la tasa de hoy?`,
   )
@@ -445,6 +463,14 @@ export function PreApproval({
               <span>🔒</span>
               Tus datos están protegidos
             </p>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="mt-5 w-full text-center text-sm text-[#9CA3AF] transition-colors hover:text-[#6B7280]"
+            >
+              ← Hacer otra solicitud
+            </button>
           </div>
         </div>
       </section>
