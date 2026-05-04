@@ -1,11 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { SimulationData } from './Calculator'
 import { formatCLP, formatUSD } from '@/lib/formatters'
 import { saveLead } from '@/lib/leads/saveLead'
 
 const CARD_TYPES = ['Visa', 'Mastercard', 'Amex'] as const
+const FALLBACK_DOLAR = 930
+
+const getFactor = (amount: number): number => {
+  if (amount < 200) return 0
+  if (amount < 1000) return 0.78
+  if (amount < 2500) return 0.79
+  if (amount < 5000) return 0.80
+  return 0.81
+}
 const BANCOS = [
   'BancoEstado',
   'Santander',
@@ -20,8 +29,6 @@ const BRAND_NAMES: Record<string, string> = {
   'caja-chica': 'La Caja Chica',
   'proflow-latam': 'ProFlow LATAM',
 }
-const TASA = 930
-const COMISION = 0.035
 
 export interface LeadData {
   nombre: string
@@ -32,6 +39,7 @@ export interface LeadData {
   montoUSD: number
   montoEstimadoCLP: number
   primeraOperacion: boolean
+  tiene_saldo_nacional: boolean
   brand: string
   source: 'pre-approval'
   createdAt: string
@@ -57,10 +65,12 @@ function validateStep1(nombre: string, telefono: string, email: string) {
   return errors
 }
 
-function validateStep2(banco: string, montoUSD: number) {
+function validateStep2(banco: string, montoUSD: number, tieneSaldoNacional: boolean | null) {
   const errors: Record<string, string> = {}
   if (!banco) errors.banco = 'Selecciona tu banco emisor'
   if (!montoUSD || montoUSD <= 0) errors.montoUSD = 'Ingresa un monto mayor a 0'
+  else if (montoUSD < 200) errors.montoUSD = 'El monto mínimo de operación es USD 200'
+  if (tieneSaldoNacional === null) errors.tieneSaldoNacional = 'Este campo es requerido para continuar'
   return errors
 }
 
@@ -247,7 +257,22 @@ export function PreApproval({
   const [banco, setBanco] = useState('')
   const [montoUSD, setMontoUSD] = useState<number>(simulationData?.montoUSD ?? 0)
   const [primeraOperacion, setPrimeraOperacion] = useState<boolean | null>(null)
+  const [tieneSaldoNacional, setTieneSaldoNacional] = useState<boolean | null>(null)
   const [prevSimData, setPrevSimData] = useState(simulationData)
+  const [valorDolar, setValorDolar] = useState<number | null>(null)
+
+  useEffect(() => {
+    fetch('https://mindicador.cl/api/dolar')
+      .then((res) => res.json())
+      .then((data) => {
+        const valor =
+          (Array.isArray(data) ? data[0]?.valor : null) ??
+          data?.serie?.[0]?.valor
+        if (typeof valor === 'number') setValorDolar(valor)
+        else throw new Error('Formato inesperado')
+      })
+      .catch(() => setValorDolar(FALLBACK_DOLAR))
+  }, [])
 
   if (simulationData !== prevSimData) {
     setPrevSimData(simulationData)
@@ -266,7 +291,8 @@ export function PreApproval({
   const [leadId, setLeadId] = useState<string | undefined>(undefined)
 
   const brandName = BRAND_NAMES[brand]
-  const montoEstimadoCLP = Math.round(montoUSD * TASA * (1 - COMISION))
+  const dolarActual = valorDolar ?? FALLBACK_DOLAR
+  const montoEstimadoCLP = montoUSD > 0 ? Math.round(montoUSD * getFactor(montoUSD) * dolarActual) : 0
 
   const handleNext1 = () => {
     const errs = validateStep1(nombre, telefono, email)
@@ -275,7 +301,7 @@ export function PreApproval({
   }
 
   const handleNext2 = () => {
-    const errs = validateStep2(banco, montoUSD)
+    const errs = validateStep2(banco, montoUSD, tieneSaldoNacional)
     setErrors(errs)
     if (Object.keys(errs).length === 0) setStep(3)
   }
@@ -297,6 +323,7 @@ export function PreApproval({
       montoUSD,
       montoEstimadoCLP,
       primeraOperacion: primeraOperacion ?? false,
+      tiene_saldo_nacional: tieneSaldoNacional ?? false,
       brand,
       source: 'pre-approval',
       createdAt: new Date().toISOString(),
@@ -557,7 +584,7 @@ export function PreApproval({
               </div>
 
               <div>
-                <label className={labelCls}>Monto aproximado (USD)</label>
+                <label className={labelCls}>Monto (USD)</label>
                 {simulationData ? (
                   <div
                     className="flex items-center gap-3 rounded-[12px] border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3.5"
@@ -577,11 +604,16 @@ export function PreApproval({
                       value={montoUSD || ''}
                       onChange={(e) => { setMontoUSD(Number(e.target.value)); setErrors((p) => ({ ...p, montoUSD: '' })) }}
                       placeholder="Ej: 5000"
-                      min={1}
+                      min={200}
                       className={inputCls(!!errors.montoUSD)}
                     />
                     {errors.montoUSD && <p className={errorCls}>{errors.montoUSD}</p>}
                   </>
+                )}
+                {montoUSD >= 200 && (
+                  <p className="mt-1.5 text-xs font-medium text-green-600">
+                    Recibirías aproximadamente {formatCLP(montoEstimadoCLP)} CLP
+                  </p>
                 )}
               </div>
 
@@ -604,6 +636,31 @@ export function PreApproval({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                <label className={labelCls}>¿Cuentas con saldo nacional en tu tarjeta?</label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {([true, false] as const).map((val) => (
+                    <button
+                      key={String(val)}
+                      type="button"
+                      onClick={() => { setTieneSaldoNacional(val); setErrors((p) => ({ ...p, tieneSaldoNacional: '' })) }}
+                      className="rounded-xl border py-3 text-sm font-semibold transition-all"
+                      style={
+                        tieneSaldoNacional === val
+                          ? { borderColor: accentColor, backgroundColor: accentColor, color: '#fff' }
+                          : { borderColor: '#E5E7EB', color: '#6B7280', backgroundColor: 'white' }
+                      }
+                    >
+                      {val ? 'Sí, tengo saldo' : 'No tengo saldo'}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-[#9CA3AF]">
+                  El no tener saldo positivo implica que probablemente la tarjeta esté bloqueada y no se pueda operar.
+                </p>
+                {errors.tieneSaldoNacional && <p className={errorCls}>{errors.tieneSaldoNacional}</p>}
               </div>
 
               <div className="flex gap-3 pt-1">
