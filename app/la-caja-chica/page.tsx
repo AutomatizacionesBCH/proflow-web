@@ -460,24 +460,12 @@ export default function CajaChicaPage() {
       <TrustMetrics />
 
       {/* ── Pre-aprobación standalone ──────────────────────────────── */}
-      <section className="bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-2xl px-4 sm:px-6">
-          <div className="mb-10 text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight text-[#043D35] sm:text-4xl">
-              ¿Puedes operar hoy?
-            </h2>
-            <p className="mt-3 text-[#6B7280]">
-              Responde 3 preguntas y te decimos si tu operación puede realizarse hoy mismo.
-            </p>
-          </div>
-          <PreApproval
-            brand="caja-chica"
-            primaryColor="#043D35"
-            accentColor="#0A6B5A"
-            whatsappNumber="56966810468"
-          />
-        </div>
-      </section>
+      <PreApproval
+        brand="caja-chica"
+        primaryColor="#043D35"
+        accentColor="#0A6B5A"
+        whatsappNumber="56966810468"
+      />
 
       <PriorityOperation />
       <HowItWorks />
