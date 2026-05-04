@@ -39,7 +39,7 @@ export async function saveLead(leadData: LeadData): Promise<{
         phone: leadData.telefono,
         whatsapp: leadData.telefono,
         source_platform: 'web',
-        source_channel: channel,
+        source_channel: 'web',
         stage: 'new',
         priority_label: 'cold',
         notes,
