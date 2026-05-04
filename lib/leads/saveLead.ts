@@ -14,6 +14,23 @@ export async function saveLead(leadData: LeadData): Promise<{
   try {
     const supabase = getSupabase()
 
+    const channel = CHANNEL_MAP[leadData.brand] ?? leadData.brand
+
+    const notes = `Tipo tarjeta: ${leadData.tipoTarjeta} | Banco: ${leadData.banco} | Monto: USD ${leadData.montoUSD} | CLP estimado: $${leadData.montoEstimadoCLP} | Saldo nacional: ${leadData.tiene_saldo_nacional ? 'Sí' : 'No'} | Primera operación: ${leadData.primeraOperacion ? 'Sí' : 'No'}`
+
+    const raw_payload = {
+      brand: leadData.brand,
+      tipo_tarjeta: leadData.tipoTarjeta,
+      banco: leadData.banco,
+      monto_usd: leadData.montoUSD,
+      monto_clp_estimado: leadData.montoEstimadoCLP,
+      tiene_saldo_nacional: leadData.tiene_saldo_nacional,
+      primera_operacion: leadData.primeraOperacion,
+      source: 'web-preapproval',
+      page_url: typeof window !== 'undefined' ? window.location.href : '',
+      created_at: new Date().toISOString(),
+    }
+
     const { data, error } = await supabase
       .from('leads')
       .insert({
@@ -21,18 +38,12 @@ export async function saveLead(leadData: LeadData): Promise<{
         email: leadData.email,
         phone: leadData.telefono,
         whatsapp: leadData.telefono,
-        source_channel: CHANNEL_MAP[leadData.brand] ?? leadData.brand,
         source_platform: 'web',
+        source_channel: channel,
         stage: 'new',
-        lead_type: 'pre-approval',
-        raw_payload: {
-          amount_usd: leadData.montoUSD,
-          amount_clp: leadData.montoEstimadoCLP,
-          card_type: leadData.tipoTarjeta,
-          bank: leadData.banco,
-          first_operation: leadData.primeraOperacion,
-          source: leadData.source,
-        },
+        priority_label: 'cold',
+        notes,
+        raw_payload,
         created_at: new Date().toISOString(),
       })
       .select('id')
@@ -50,11 +61,12 @@ export async function saveLead(leadData: LeadData): Promise<{
       .insert({
         lead_id: leadId,
         event_type: 'web_preapproval_completed',
-        channel: CHANNEL_MAP[leadData.brand] ?? leadData.brand,
+        channel,
         source: 'web',
         metadata: {
           monto_usd: leadData.montoUSD,
           tipo_tarjeta: leadData.tipoTarjeta,
+          tiene_saldo_nacional: leadData.tiene_saldo_nacional,
           primera_operacion: leadData.primeraOperacion,
         },
         created_at: new Date().toISOString(),
