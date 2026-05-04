@@ -612,7 +612,7 @@ export function PreApproval({
                 )}
                 {montoUSD >= 200 && (
                   <p className="mt-1.5 text-xs font-medium text-green-600">
-                    Recibirías aproximadamente {formatCLP(montoEstimadoCLP)} CLP
+                    Recibirías {formatCLP(montoEstimadoCLP)} CLP
                   </p>
                 )}
               </div>
